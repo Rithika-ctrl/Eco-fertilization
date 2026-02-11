@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECO - FERTILIZATION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* CORE LAYOUT */
+        body, html { margin: 0; padding: 0; overflow-x: hidden; scroll-behavior: smooth; }
+        section { width: 100%; min-height: 100vh; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* AUTH STYLES */
+        .auth-link { color: #b9ff00; text-decoration: none; font-size: 1rem; cursor: pointer; transition: 0.3s; }
+        .auth-link:hover { text-decoration: underline; color: #fff; }
+        .skip-btn { margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.9rem; cursor: pointer; text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.4); }
+        .remember-box { display: flex; align-items: center; font-size: 1rem; color: rgba(255,255,255,0.9); cursor: pointer; }
+        .remember-box input { margin-right: 10px; width: 16px; height: 16px; accent-color: #b9ff00; }
+        
+        /* HELPER */
+        .hidden { display: none !important; }
+
+        /* --- NEW: VOICE BUTTON STYLE --- */
+        .mic-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #b9ff00;
+            color: #fff;
+            cursor: pointer;
+            padding: 10px 14px;
+            font-size: 1.2rem;
+            border-radius: 4px;
+            transition: 0.3s;
+            margin-left: 5px;
+        }
+        .mic-btn:hover {
+            background: #b9ff00;
+            color: #000;
+            box-shadow: 0 0 10px #b9ff00;
+        }
+        .listening {
+            animation: pulse-red 1.5s infinite;
+            border-color: #ff3b30 !important;
+            background: rgba(255, 59, 48, 0.2) !important;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <section class="hero {% if mode == 'scan' %}hidden{% endif %}" id="heroSection">
+        <div class="scroll-indicator" onclick="scrollToLogin()"><span></span><span></span></div>
+    </section>
+
+    <section class="form-section {% if mode == 'scan' %}hidden{% endif %}" id="loginSection">
+        
+        <div class="glass-container" id="loginBox" style="max-width: 420px; width: 90%;">
+            <h2 class="form-title">System Access</h2>
+
+            <div class="input-grid" style="grid-template-columns: 1fr; gap: 20px;">
+                <div class="field-group"><label style="font-size: 1rem;">Email</label><input type="email" id="loginEmail" style="padding: 14px; font-size: 1rem;"></div>
+                <div class="field-group"><label style="font-size: 1rem;">Password</label><input type="password" id="loginPass" style="padding: 14px; font-size: 1rem;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; width: 100%;">
+                <label class="remember-box"><input type="checkbox"> Remember Me</label>
+                <a href="javascript:void(0)" class="auth-link" onclick="toggleAuth('forgot')">Forgot password?</a>
+            </div>
+            <p id="loginError" style="color: #ff6b6b; font-size: 1rem; margin-top: 15px; display: none; text-align: center;"></p>
+            <div class="form-footer" style="margin-top: 25px;">
+                <button type="button" class="submit-leaf-btn" onclick="doLogin()" style="width: 100%; font-size: 1.1rem; padding: 15px;">LOG IN</button>
+            </div>
+            <div style="text-align: center; margin-top: 25px; font-size: 1rem;">
+                <span style="opacity: 0.8;">Don't have an account?</span><span class="auth-link" style="margin-left: 5px;" onclick="toggleAuth('signup')">Sign up here.</span>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="/scan" class="skip-btn">Continue as Guest &darr;</a>
+            </div>
+        </div>
+
+        <div class="glass-container" id="signupBox" style="max-width: 420px; width: 90%; display: none;">
+            <h2 class="form-title">Register</h2>
+            <div class="input-grid" style="grid-template-columns: 1fr; gap: 20px;">
+                <div class="field-group"><label style="font-size: 1rem;">Email</label><input type="email" id="signEmail" style="padding: 14px; font-size: 1rem;"></div>
+                <div class="field-group"><label style="font-size: 1rem;">Password</label><input type="password" id="signPass" style="padding: 14px; font-size: 1rem;"></div>
+            </div>
+            <p id="signError" style="color: #ff6b6b; font-size: 1rem; margin-top: 15px; display: none; text-align: center;"></p>
+            <p id="signSuccess" style="color: #b9ff00; font-size: 1rem; margin-top: 15px; display: none; text-align: center;">Created! Please Login.</p>
+            <div class="form-footer" style="margin-top: 25px;">
+                <button type="button" class="submit-leaf-btn" onclick="doSignup()" style="width: 100%; font-size: 1.1rem; padding: 15px;">SIGN UP</button>
+            </div>
+            <div style="text-align: center; margin-top: 25px; font-size: 1rem;">
+                <span class="auth-link" onclick="toggleAuth('login')">Back to Login</span>
+            </div>
+        </div>
+
+         <div class="glass-container" id="forgotBox" style="max-width: 420px; width: 90%; display: none;">
+            <h2 class="form-title">Reset Password</h2>
+            <p style="text-align: center; font-size: 1rem; opacity: 0.9; margin-bottom: 25px;">Enter the email address linked to your account.</p>
+            <div class="input-grid" style="grid-template-columns: 1fr;">
+                <div class="field-group"><label style="font-size: 1rem;">Email</label><input type="email" id="forgotEmail" style="padding: 14px; font-size: 1rem;"></div>
+            </div>
+            <p id="resetMsg" style="color: #b9ff00; font-size: 1rem; margin-top: 15px; display: none; text-align: center;">Reset link sent!</p>
+            <div class="form-footer" style="margin-top: 25px;">
+                <button type="button" class="submit-leaf-btn" onclick="sendResetLink()" style="width: 100%; font-size: 1.1rem; padding: 15px;">Send Reset Link</button>
+            </div>
+            <div style="text-align: center; margin-top: 25px; font-size: 1rem;">
+                <a href="javascript:void(0)" class="auth-link" onclick="toggleAuth('login')">&larr; Back to Login</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section {% if mode == 'auth' %}hidden{% endif %}" id="formSection">
+        <div class="glass-container">
+            
+            {% if is_logged_in %}
+            <div style="margin-bottom: 20px;">
+                <a href="/dashboard" class="auth-link">&larr; Back to Dashboard</a>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/processing">
+                <h2 class="form-title">Input Details</h2>
+
+                <div class="dynamic-crop-container">
+                    <label>Select Specific Crop from List:</label>
+                    <div style="display: flex; align-items: center; width: 100%;">
+                        <select id="crop" name="crop" required onchange="updateIconSelection(this.value)" style="flex: 1;">
+                            <option value="">Choose Crop...</option>
+                            <option value="Corn">Corn</option>
+                            <option value="Rice">Rice</option>
+                            <option value="Sunflower">Sunflower</option>
+                        </select>
+                        <button type="button" class="mic-btn" id="btn-crop" onclick="startDictation('crop', 'select', 'btn-crop')">🎙️</button>
+                    </div>
+                </div>
+                
+                <div class="crop-wood-panel">
+                    <div class="crop-options">
+                        <div class="crop-item" onclick="selectCropIcon('Corn', this)"><div class="crop-circle" id="vis-Corn">🌽</div><span>Corn</span></div>
+                        <div class="crop-item" onclick="selectCropIcon('Rice', this)"><div class="crop-circle" id="vis-Rice">🌾</div><span>Rice</span></div>
+                        <div class="crop-item" onclick="selectCropIcon('Sunflower', this)"><div class="crop-circle" id="vis-Sunflower">🌻</div>Sunflower<span>
+
+                        </span></div>
+                    </div>
+                </div>
+
+                <div class="location-method-container">
+                    <p class="method-label">Location Method</p>
+                    <div class="toggle-wrapper"><span>Manual</span><label class="toggle-switch"><input type="checkbox" id="locationToggle" onchange="handleLocationMethod(this.checked)"><span class="slider"></span></label><span>Use My Location</span></div>
+                    <p id="locationStatus"></p>
+                </div>
+
+                <div class="input-grid" id="manualLocation">
+                    <div class="field-group">
+                        <label>State</label>
+                        <div style="display: flex; align-items: center;">
+                            <select id="state" name="state" style="flex: 1;"></select>
+                            <button type="button" class="mic-btn" id="btn-state" onclick="startDictation('state', 'select', 'btn-state')">🎙️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>City</label>
+                        <div style="display: flex; align-items: center;">
+                            <select id="city" name="city" style="flex: 1;"></select>
+                            <button type="button" class="mic-btn" id="btn-city" onclick="startDictation('city', 'select', 'btn-city')">🎙️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>Village</label>
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="area" name="area" style="flex: 1;">
+                            <button type="button" class="mic-btn" id="btn-area" onclick="startDictation('area', 'text', 'btn-area')">🎙️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>Pincode</label>
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="pincode" name="pincode" style="flex: 1;">
+                            <button type="button" class="mic-btn" id="btn-pin" onclick="startDictation('pincode', 'text', 'btn-pin')">🎙️</button>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="latitude" name="latitude"><input type="hidden" id="longitude" name="longitude">
+
+                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
+                    <details>
+                        <summary style="cursor: pointer; color: #fff; font-weight: bold;"><span>⚙️ Manual Weather Override</span></summary>
+                        <div class="input-grid" style="margin-top: 15px;">
+                            <div class="field-group"><label>Temp (°C)</label><input type="number" step="0.1" name="manual_temp"></div>
+                            <div class="field-group"><label>Hum (%)</label><input type="number" step="0.1" name="manual_humid"></div>
+                            <div class="field-group"><label>Rain (mm)</label><input type="number" step="0.1" name="manual_rain"></div>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="form-footer"><button type="submit" class="submit-leaf-btn">SUBMIT</button></div>
+            </form>
+        </div>
+    </section>
+
+    <script>
+        function scrollToLogin() { document.getElementById("loginSection").scrollIntoView({ behavior: "smooth" }); }
+
+        function toggleAuth(view) {
+            document.getElementById('loginBox').style.display = 'none';
+            document.getElementById('signupBox').style.display = 'none';
+            document.getElementById('forgotBox').style.display = 'none';
+            document.getElementById(view + 'Box').style.display = 'block';
+        }
+
+        function sendResetLink() {
+            if(document.getElementById('forgotEmail').value) document.getElementById('resetMsg').style.display = 'block';
+        }
+
+        function doLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPass').value;
+            fetch('/login_api', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email, password}) })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) window.location.href = "/dashboard";
+                else { document.getElementById('loginError').innerText = data.message; document.getElementById('loginError').style.display = 'block'; }
+            });
+        }
+
+        function doSignup() {
+            const email = document.getElementById('signEmail').value;
+            const password = document.getElementById('signPass').value;
+            fetch('/signup_api', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email, password}) })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) { document.getElementById('signSuccess').style.display = 'block'; setTimeout(() => toggleAuth('login'), 1500); }
+                else { document.getElementById('signError').innerText = data.message; document.getElementById('signError').style.display = 'block'; }
+            });
+        }
+
+        // --- EXISTING HELPERS ---
+        function selectCropIcon(val, element) {
+            const mainSelect = document.getElementById('crop'); mainSelect.value = val; updateIconSelection(val);
+        }
+        function updateIconSelection(val) {
+            document.querySelectorAll('.crop-circle').forEach(c => c.classList.remove('active-crop'));
+            const activeIcon = document.getElementById('vis-' + val); if (activeIcon) activeIcon.classList.add('active-crop');
+        }
+        function handleLocationMethod(isAuto) {
+            const manualDiv = document.getElementById("manualLocation"); const status = document.getElementById("locationStatus");
+            if (isAuto) {
+                manualDiv.style.opacity = "0.4"; manualDiv.style.pointerEvents = "none"; status.innerText = "Accessing GPS...";
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        document.getElementById("latitude").value = pos.coords.latitude; document.getElementById("longitude").value = pos.coords.longitude; status.innerText = "Captured successfully ✔";
+                    }, () => { alert("Access Denied."); document.getElementById("locationToggle").checked = false; handleLocationMethod(false); });
+                }
+            } else { manualDiv.style.opacity = "1"; manualDiv.style.pointerEvents = "auto"; status.innerText = ""; }
+        }
+
+        // --- NEW: VOICE RECOGNITION LOGIC ---
+        function startDictation(fieldId, type, btnId) {
+            if (window.hasOwnProperty('webkitSpeechRecognition')) {
+                var recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = "en-US";
+
+                var btn = document.getElementById(btnId);
+                btn.classList.add('listening'); // Pulse effect
+
+                recognition.start();
+
+                recognition.onresult = function(e) {
+                    var transcript = e.results[0][0].transcript;
+                    transcript = transcript.replace('.', '').trim(); // Clean text
+                    
+                    var element = document.getElementById(fieldId);
+
+                    if (type === 'select') {
+                        // Intelligent Dropdown Selection
+                        var found = false;
+                        for (var i = 0; i < element.options.length; i++) {
+                            // Compare spoken text with option text (Case insensitive)
+                            if (element.options[i].text.toLowerCase().includes(transcript.toLowerCase())) {
+                                element.selectedIndex = i;
+                                found = true;
+                                // Trigger change event so City loads if State changed
+                                element.dispatchEvent(new Event('change'));
+                                break;
+                            }
+                        }
+                        if (!found) alert("Could not find '" + transcript + "' in the list.");
+                    } else {
+                        // Standard Text Input
+                        element.value = transcript;
+                    }
+                    
+                    recognition.stop();
+                    btn.classList.remove('listening');
+                };
+
+                recognition.onerror = function(e) {
+                    recognition.stop();
+                    btn.classList.remove('listening');
+                    alert("Voice input failed. Please try again.");
+                };
+            } else {
+                alert("Voice feature requires Google Chrome.");
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='script/crops.js') }}"></script>
+    <script src="{{ url_for('static', filename='script/state.js') }}"></script>
+    <script src="{{ url_for('static', filename='script/cities.js') }}"></script>
+    <script src="{{ url_for('static', filename='script/location.js') }}"></script>
+    <script src="{{ url_for('static', filename='script/app.js') }}"></script>
+</body>
+</html>

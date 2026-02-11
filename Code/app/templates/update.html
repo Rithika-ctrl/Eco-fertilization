@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soil Intelligence Report</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        :root {
+            --neon-green: #b9ff00;
+            --glass-bg: rgba(255, 255, 255, 0.07);
+            --whatsapp-green: #25D366;
+            --neon-yellow: #ffd700; /* New Variable for Forecast */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #0b0c10; 
+        }
+
+        .report-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .verdict-header {
+            text-align: center;
+            margin-bottom: 25px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .verdict-badge {
+            background: var(--neon-green);
+            color: black;
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(185, 255, 0, 0.4);
+        }
+
+        /* --- WEATHER PANEL --- */
+        .weather-panel {
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInDown 1.2s ease;
+        }
+
+        .weather-item {
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .weather-item:last-child { border-right: none; }
+
+        .w-icon-box {
+            width: 45px; height: 45px;
+            background: rgba(185, 255, 0, 0.15);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; color: var(--neon-green);
+            margin-right: 15px;
+            box-shadow: 0 0 10px rgba(185, 255, 0, 0.1);
+        }
+
+        .w-info { display: flex; flex-direction: column; }
+        .w-label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; }
+        .w-value { font-size: 1.1rem; font-weight: 700; color: white; }
+
+        /* --- NPK CIRCLES --- */
+        .npk-matrix {
+            display: flex; gap: 40px; margin: 45px 0;
+            flex-wrap: wrap; justify-content: center;
+        }
+
+        .nutrient-circle {
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+
+        .n-val { font-size: 3.5rem; font-weight: 900; color: var(--neon-green); line-height: 1; }
+        .n-label { font-size: 1rem; font-weight: 600; margin-top: 5px; text-transform: uppercase; }
+
+        /* --- VISUALIZER CONTAINER --- */
+        .forecast-strip {
+            width: 100%;
+            max-width: 900px;
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* --- COLOR CLASSES --- */
+        .text-green { color: #b9ff00; }
+        .text-red { color: #ff3b30; }
+        .text-orange { color: #ffab00; }
+        .text-blue { color: #00d2ff; }
+        
+        .status-box {
+            flex: 1; display: flex; align-items: center; gap: 15px; 
+            background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px;
+        }
+        .status-title { font-size: 0.7rem; text-transform: uppercase; opacity: 0.6; letter-spacing: 1px; }
+        .status-val { font-size: 1.1rem; font-weight: bold; }
+
+        .form-footer {
+            margin-top: 50px;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- BUTTONS & WARNING --- */
+        .btn-applied {
+            background: transparent; border: 2px solid #b9ff00; color: #b9ff00;
+            padding: 12px 40px; border-radius: 50px; font-weight: 800; cursor: pointer;
+            font-size: 1rem; transition: 0.3s; display: flex; align-items: center; gap: 10px;
+        }
+        .btn-applied:hover { background: #b9ff00; color: black; box-shadow: 0 0 25px rgba(185, 255, 0, 0.6); }
+
+        .warning-box {
+            background: rgba(255, 140, 0, 0.15); border: 1px solid orange; padding: 10px 20px;
+            border-radius: 10px; margin-bottom: 20px; text-align: center; animation: fadeInDown 1s ease;
+        }
+        
+        /* --- WHATSAPP BUTTON STYLE --- */
+        .btn-whatsapp {
+            background-color: transparent;
+            color: var(--whatsapp-green);
+            border: 2px solid var(--whatsapp-green);
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+            text-decoration: none;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+        .btn-whatsapp:hover {
+            background-color: var(--whatsapp-green);
+            color: black;
+            box-shadow: 0 0 20px rgba(37, 211, 102, 0.5);
+            transform: scale(1.05);
+        }
+
+        /* --- ORGANIC PANEL ANIMATION --- */
+        @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* ================================================== */
+        /* NEW: 48-HOUR FORECAST SCROLLER CSS (ADDED)       */
+        /* ================================================== */
+        .future-weather-container {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .future-header {
+            color: var(--neon-yellow);
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .future-strip {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+        }
+
+        .future-strip::-webkit-scrollbar { height: 6px; }
+        .future-strip::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .future-strip::-webkit-scrollbar-thumb { background: var(--neon-yellow); border-radius: 10px; }
+
+        .future-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .future-item:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-yellow);
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .f-time { font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px; color: #fff; }
+        .f-icon { width: 40px; height: 40px; object-fit: contain; margin-bottom: 2px; }
+        .f-temp { font-weight: bold; font-size: 1.1rem; color: #fff; margin: 2px 0; }
+        .f-rain { font-size: 0.8rem; font-weight: bold; margin-top: 2px; }
+
+        /* Classes to fix VS Code errors */
+        .rain-safe { color: #4facfe; }
+        .rain-risk { color: #ff4d4d; }
+    </style>
+</head>
+
+<body>
+
+<div id="google_translate_element" class="language-widget"></div>
+
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+      pageLanguage: 'en', 
+      includedLanguages: 'en,hi,kn,ta,te,ml,mr,bn,gu,pa', 
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+      autoDisplay: false
+  }, 'google_translate_element');
+}
+
+// Ensure the Google Bar is hidden
+setInterval(function() {
+    var iframe = document.getElementsByClassName("goog-te-banner-frame")[0];
+    if (iframe) { iframe.style.display = "none"; iframe.remove(); }
+    document.body.style.top = "0px";
+}, 500);
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<style>
+    /* HIDE GOOGLE TOP BAR */
+    .goog-te-banner-frame { display: none !important; }
+    body { top: 0px !important; }
+
+    /* CUSTOM WIDGET STYLE */
+    .language-widget { position: absolute; top: 20px; right: 20px; z-index: 9999; }
+    .goog-te-gadget-simple {
+        background-color: rgba(0, 0, 0, 0.8) !important;
+        border: 1px solid #b9ff00 !important;
+        padding: 8px 12px !important;
+        border-radius: 20px !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        cursor: pointer;
+    }
+    .goog-te-gadget-simple span { color: #b9ff00 !important; font-weight: bold !important; }
+    .goog-te-gadget-icon { display: none !important; }
+    .goog-te-menu-value { margin: 0 !important; }
+    .goog-te-menu-value span { border-left: none !important; padding-left: 0 !important; }
+    @media screen and (max-width: 768px) { .language-widget { top: 15px; right: 60px; } }
+</style>
+
+<section class="form-section">
+<div class="report-wrapper">
+
+    {% if duplicate_warning %}
+    <div class="warning-box">
+        <h3 style="color: orange; margin: 0; font-size: 1rem;">⚠️ Record Exists</h3>
+        <p style="font-size: 0.8rem; margin: 5px 0 0;">You have already fertilized this crop today.</p>
+    </div>
+    {% endif %}
+
+    <div class="verdict-header">
+        <span class="verdict-badge">Optimal Window Open</span>
+        <h1 style="margin-top: 18px; font-weight: 300;">Safe to Fertilize Today</h1>
+        
+        <div style="text-align: center; margin-top: 15px;">
+            <button onclick="speakReport()" style="
+                background: rgba(255,255,255,0.1); 
+                border: 1px solid #b9ff00; 
+                color: #b9ff00; 
+                padding: 10px 25px; 
+                border-radius: 50px; 
+                cursor: pointer; 
+                font-weight: bold;
+                display: inline-flex; 
+                align-items: center; 
+                gap: 10px; 
+                transition: 0.3s;">
+                <span style="font-size: 1.2rem;">🔊</span> 
+                Read Report Aloud
+            </button>
+        </div>
+    </div>
+
+    {% if temperature is not none %}
+    <div class="weather-panel">
+        <div class="weather-item">
+            <div class="w-icon-box">📍</div>
+            <div class="w-info"><span class="w-label">Region</span><span class="w-value">{{ city }}</span></div>
+        </div>
+        <div class="weather-item">
+            <div class="w-icon-box">🌡</div>
+            <div class="w-info"><span class="w-label">Temp</span><span class="w-value">{{ temperature }}°C</span></div>
+        </div>
+        <div class="weather-item">
+            <div class="w-icon-box">💧</div>
+            <div class="w-info"><span class="w-label">Humidity</span><span class="w-value">{{ humidity }}%</span></div>
+        </div>
+        <div class="weather-item">
+            <div class="w-icon-box">🌧</div>
+            <div class="w-info"><span class="w-label">Rainfall</span><span class="w-value">{{ rainfall }}mm</span></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="protocol-switch-container" style="text-align: center; margin: 35px 0;">
+        
+        <div style="display: inline-flex; background: #000; border-radius: 50px; padding: 5px; border: 2px solid #333; position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+            
+            <div id="mode-slider" style="position: absolute; top: 5px; left: 5px; width: 140px; height: 40px; background: #333; border-radius: 40px; transition: 0.4s; z-index: 0;"></div>
+
+            <button onclick="setMode('chemical')" style="position: relative; z-index: 1; border: none; background: transparent; color: white; font-weight: 800; width: 140px; height: 40px; cursor: pointer; font-size: 1rem; transition: 0.3s; text-transform: uppercase;" id="btn-chem">
+                🧪 CHEMICAL
+            </button>
+
+            <button onclick="setMode('organic')" style="position: relative; z-index: 1; border: none; background: transparent; color: #888; font-weight: 800; width: 140px; height: 40px; cursor: pointer; font-size: 1rem; transition: 0.3s; text-transform: uppercase;" id="btn-org">
+                🌿 ORGANIC
+            </button>
+        </div>
+
+        <div id="organic-badge" style="margin-top: 15px; display: none; animation: popIn 0.5s;">
+            <span style="background: #004d00; color: #fff; border: 1px solid #008000; padding: 8px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: 900; letter-spacing: 1px; box-shadow: 0 0 20px rgba(0, 100, 0, 0.6);">
+                ✨ NATURE MODE ACTIVE
+            </span>
+        </div>
+    </div>
+
+    <div id="organic-panel" style="display: none; margin-top: 25px; background: linear-gradient(145deg, #001a00, #000); border: 2px solid #006400; border-radius: 25px; padding: 30px; max-width: 800px; margin-left: auto; margin-right: auto; width: 100%; box-shadow: 0 0 50px rgba(0, 50, 0, 0.5);">
+        
+        <h3 style="color: #228B22; margin-top: 0; text-align: center; text-transform: uppercase; font-size: 1.4rem; border-bottom: 1px solid #004d00; padding-bottom: 15px; margin-bottom: 25px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(0,0,0,0.8);">
+            🌱 Bio-Organic Prescription
+        </h3>
+        
+        <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px;">
+            
+            <div style="text-align: center; background: rgba(0, 20, 0, 0.6); padding: 20px; border-radius: 20px; width: 30%; border: 1px solid #004d00;">
+                <div style="font-size: 3.5rem; margin-bottom: 10px; filter: drop-shadow(0 0 5px #006400);">🪱</div>
+                <div style="color: #ccc; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px;">Vermicompost</div>
+                <div id="org-vermi" style="color: #32CD32; font-size: 1.8rem; font-weight: 900; text-shadow: 0 0 10px #006400;">0 kg</div>
+                <div style="color: #666; font-size: 0.8rem; margin-top: 5px;">Replaces Urea</div>
+            </div>
+
+            <div style="text-align: center; background: rgba(0, 20, 0, 0.6); padding: 20px; border-radius: 20px; width: 30%; border: 1px solid #004d00;">
+                <div style="font-size: 3.5rem; margin-bottom: 10px; filter: drop-shadow(0 0 5px #006400);">🦴</div>
+                <div style="color: #ccc; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px;">Bone Meal</div>
+                <div id="org-bone" style="color: #32CD32; font-size: 1.8rem; font-weight: 900; text-shadow: 0 0 10px #006400;">0 kg</div>
+                <div style="color: #666; font-size: 0.8rem; margin-top: 5px;">Replaces DAP</div>
+            </div>
+
+            <div style="text-align: center; background: rgba(0, 20, 0, 0.6); padding: 20px; border-radius: 20px; width: 30%; border: 1px solid #004d00;">
+                <div style="font-size: 3.5rem; margin-bottom: 10px; filter: drop-shadow(0 0 5px #006400);">🪵</div>
+                <div style="color: #ccc; font-weight: bold; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px;">Wood Ash</div>
+                <div id="org-ash" style="color: #32CD32; font-size: 1.8rem; font-weight: 900; text-shadow: 0 0 10px #006400;">0 kg</div>
+                <div style="color: #666; font-size: 0.8rem; margin-top: 5px;">Replaces MOP</div>
+            </div>
+
+        </div>
+    </div>
+
+    {% if NPK and NPK[0] %}
+    <div class="npk-matrix">
+        <div class="nutrient-circle">
+            <span class="n-val" id="valN">{{ NPK[0]['Label_N'] | default(0) }}</span>
+            <span class="n-label">Nitrogen</span>
+        </div>
+        <div class="nutrient-circle">
+            <span class="n-val" id="valP">{{ NPK[0]['Label_P'] | default(0) }}</span>
+            <span class="n-label">Phosphorus</span>
+        </div>
+        <div class="nutrient-circle">
+            <span class="n-val" id="valK">{{ NPK[0]['Label_K'] | default(0) }}</span>
+            <span class="n-label">Potassium</span>
+        </div>
+    </div>
+    {% else %}
+        <p style="opacity:0.7;">Nutrient prediction unavailable.</p>
+    {% endif %}
+
+    <div class="economy-panel" style="margin-top: 30px; background: rgba(0,0,0,0.6); border: 1px solid #b9ff00; padding: 25px; border-radius: 20px; width: 100%; max-width: 600px; text-align: center; box-shadow: 0 0 20px rgba(185, 255, 0, 0.1);">
+        
+        <h3 style="color: #b9ff00; margin-top: 0; text-transform: uppercase; letter-spacing: 2px;">
+            💰 Live Cost Estimator
+        </h3>
+        <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 20px;">
+            Enter your local market rates to see the total cost instantly.
+        </p>
+
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 0.9rem; color: #fff; margin-right: 10px;">Land Size (Acres):</label>
+            <input type="number" id="landSize" value="1" min="0.1" step="0.1" oninput="calculateCost()"
+                   style="padding: 8px; width: 80px; text-align: center; border-radius: 5px; border: 1px solid #555; background: #222; color: #b9ff00; font-weight: bold;">
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="font-size: 0.8rem; color: #b9ff00; margin-bottom: 10px; font-weight: bold;">
+                ENTER PRICE PER 1 KG (₹)
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: space-between;">
+                
+                <div style="flex: 1;">
+                    <label style="font-size: 0.7rem; display: block; color: #aaa; margin-bottom: 5px;">Urea (N)</label>
+                    <input type="number" id="rateN" value="6" oninput="calculateCost()"
+                           style="width: 100%; padding: 8px; background: #000; border: 1px solid #444; color: white; text-align: center; border-radius: 5px;">
+                </div>
+                
+                <div style="flex: 1;">
+                    <label style="font-size: 0.7rem; display: block; color: #aaa; margin-bottom: 5px;">DAP (P)</label>
+                    <input type="number" id="rateP" value="27" oninput="calculateCost()"
+                           style="width: 100%; padding: 8px; background: #000; border: 1px solid #444; color: white; text-align: center; border-radius: 5px;">
+                </div>
+                
+                <div style="flex: 1;">
+                    <label style="font-size: 0.7rem; display: block; color: #aaa; margin-bottom: 5px;">MOP (K)</label>
+                    <input type="number" id="rateK" value="34" oninput="calculateCost()"
+                           style="width: 100%; padding: 8px; background: #000; border: 1px solid #444; color: white; text-align: center; border-radius: 5px;">
+                </div>
+
+            </div>
+        </div>
+
+        <div id="costResult" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+            <div style="font-size: 0.9rem; color: #aaa;">Estimated Total Cost:</div>
+            <div id="totalPrice" style="font-size: 3rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px #b9ff00; transition: 0.3s;">
+                ₹0
+            </div>
+        </div>
+        
+        <button onclick="shareWhatsApp()" class="btn-whatsapp">
+            <span>📲</span> Send Report 
+        </button>
+        <p style="color:#666; font-size:0.75rem; margin-top:5px;">Instant Alert via WhatsApp</p>
+
+    </div>
+
+    <div class="forecast-strip" style="display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; gap: 20px; margin-top: 30px;">
+        
+        <div class="status-box">
+            <div style="font-size: 2rem;">🌊</div>
+            <div>
+                <div class="status-title">Runoff Risk</div>
+                <div class="status-val {{ 'text-green' if rainfall|float < 10 else 'text-red' }}">
+                    {{ 'LOW' if rainfall < 10 else 'HIGH' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <div style="font-size: 2rem;">🧬</div>
+            <div>
+                <div class="status-title">Absorption</div>
+                <div class="status-val {{ 'text-green' if temperature > 20 and temperature < 30 else 'text-orange' }}">
+                    {{ 'OPTIMAL' if temperature > 20 and temperature < 30 else 'MODERATE' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <div style="font-size: 2rem;">🤖</div>
+            <div>
+                <div class="status-title">AI Model</div>
+                <div class="status-val text-blue">
+                    Random Forest
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {% if forecast %}
+    <div class="future-weather-container">
+        <div class="future-header">
+            <span>☔</span> Upcoming 48-Hour Forecast
+        </div>
+        
+        <div class="future-strip">
+            {% for hour in forecast %}
+            <div class="future-item">
+                <span class="f-time">{{ hour.time }}</span>
+                <img src="{{ hour.icon }}" class="f-icon" alt="weather">
+                <span class="f-temp">{{ hour.temp }}°C</span>
+                <span class="f-rain {{ 'rain-risk' if hour.rain_prob > 50 else 'rain-safe' }}">
+                    {{ hour.rain_prob }}%
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="form-footer">
+        {% if is_logged_in %}
+            <button id="applyBtn" class="btn-applied" onclick="confirmApplication()">
+                <span>⚡</span> Fertilizers Applied
+            </button>
+            <p id="successMsg" style="color: #b9ff00; display: none; font-weight: bold;">
+                ✅ Application Recorded!
+            </p>
+            <a href="{{ url_for('dashboard') }}" style="text-decoration:none;">
+                <button class="submit-leaf-btn" style="padding: 15px 40px;">RETURN TO DASHBOARD</button>
+            </a>
+        {% else %}
+            <a href="{{ url_for('scan') }}" style="text-decoration:none;">
+                <button class="submit-leaf-btn" style="padding: 15px 40px;">NEW SCAN</button>
+            </a>
+        {% endif %}
+    </div>
+
+</div>
+</section>
+
+<script>
+    function confirmApplication() {
+        const btn = document.getElementById('applyBtn');
+        const msg = document.getElementById('successMsg');
+        
+        // 1. GET THE COST FROM SCREEN
+        var costText = document.getElementById('totalPrice').innerText;
+        var cleanCost = costText.replace(/[₹,]/g, '');
+
+        // 2. GET THE ACTUAL NPK NUMBERS FROM THE CIRCLES (SCALED FOR ACRES)
+        var finalN = document.getElementById('valN').innerText;
+        var finalP = document.getElementById('valP').innerText;
+        var finalK = document.getElementById('valK').innerText;
+
+        const payload = {
+            state: "{{ state }}",
+            city: "{{ city }}",
+            crop: "{{ crop }}",
+            N: finalN,
+            P: finalP,
+            K: finalK,
+            acres: document.getElementById('landSize').value, 
+            cost: cleanCost
+        };
+
+        fetch('/record_application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                btn.style.display = 'none';
+                msg.style.display = 'block';
+                setTimeout(() => { window.location.href = "/dashboard"; }, 2000);
+            }
+        });
+    }
+
+    // --- PROFESSIONAL VOICE LOGIC ---
+    function speakReport() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Stop overlap
+
+            var crop = "{{ crop }}";
+            var rainStatus = "{{ 'High' if rainfall >= 10 else 'Low' }}";
+            var tempStatus = "{{ 'Optimal' if temperature > 20 and temperature < 30 else 'Moderate' }}";
+            var n_val = document.getElementById('valN').innerText;
+            var p_val = document.getElementById('valP').innerText;
+            var k_val = document.getElementById('valK').innerText;
+
+            var text = `Hello. Here is the soil intelligence report for your ${crop} farm. 
+                        The weather is safe for fertilization. 
+                        Run off risk is ${rainStatus}. Absorption is ${tempStatus}. 
+                        
+                        Recommended nutrients are: 
+                        ${n_val} parts Nitrogen. 
+                        ${p_val} parts Phosphorus. 
+                        and ${k_val} parts Potassium. 
+                        
+                        Apply these for best results. Good luck!`;
+
+            var utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.8; 
+            utterance.pitch = 1.0;
+
+            var voices = window.speechSynthesis.getVoices();
+            var preferredVoice = voices.find(voice => 
+                voice.name.includes("Google US English") || 
+                voice.name.includes("Zira") || 
+                voice.name.includes("Samantha")
+            );
+
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert("Voice output not supported by this browser.");
+        }
+    }
+    
+    // --- UPDATED LOGIC: SCALE NPK AND COST WITH ACRES ---
+    function calculateCost() {
+        // 1. Get Base NPK (Hectare values from Python)
+        const baseN = parseFloat("{{ NPK[0]['Label_N'] if NPK else 0 }}");
+        const baseP = parseFloat("{{ NPK[0]['Label_P'] if NPK else 0 }}");
+        const baseK = parseFloat("{{ NPK[0]['Label_K'] if NPK else 0 }}");
+
+        // 2. Get User Land Size
+        var acres = parseFloat(document.getElementById('landSize').value) || 0;
+
+        // 3. Conversion: 1 Hectare = 2.47 Acres
+        var conversionFactor = acres / 2.47;
+
+        // 4. Calculate New Quantities
+        var newN = Math.round(baseN * conversionFactor);
+        var newP = Math.round(baseP * conversionFactor);
+        var newK = Math.round(baseK * conversionFactor);
+
+        // 5. Update Circles on Screen
+        if(document.getElementById('valN')) document.getElementById('valN').innerText = newN;
+        if(document.getElementById('valP')) document.getElementById('valP').innerText = newP;
+        if(document.getElementById('valK')) document.getElementById('valK').innerText = newK;
+
+        // 6. Calculate Cost
+        var priceN = parseFloat(document.getElementById('rateN').value) || 0;
+        var priceP = parseFloat(document.getElementById('rateP').value) || 0;
+        var priceK = parseFloat(document.getElementById('rateK').value) || 0;
+
+        var totalCost = (newN * priceN) + (newP * priceP) + (newK * priceK);
+        var cleanTotal = Math.round(totalCost);
+
+        // 7. Update Total Cost Text
+        document.getElementById('totalPrice').innerText = "₹" + cleanTotal.toLocaleString('en-IN');
+        
+        // 8. Update Organic Equivalents if visible
+        updateOrganicValues();
+    }
+
+    // --- NEW: WHATSAPP SHARE LOGIC ---
+    function shareWhatsApp() {
+        // Gather the Data
+        var crop = "{{ crop }}";
+        var city = "{{ city }}";
+        var cost = document.getElementById('totalPrice').innerText;
+        var acres = document.getElementById('landSize').value;
+        var n = document.getElementById('valN').innerText;
+        var p = document.getElementById('valP').innerText;
+        var k = document.getElementById('valK').innerText;
+
+        // Create the message
+        var message = `*🌱 ECO-FERTILIZER REPORT 🌱*
+---------------------------
+📍 *Location:* ${city}
+🌾 *Crop:* ${crop}
+📐 *Land Size:* ${acres} Acres
+---------------------------
+🧪 *Nutrients Required:*
+- Nitrogen (Urea): ${n} kg
+- Phosphorus (DAP): ${p} kg
+- Potassium (MAP): ${k} kg
+---------------------------
+💰 *Est. Cost:* ${cost}
+✅ *Status:* Safe to Apply`;
+
+        // Encode and Open
+        var url = "https://wa.me/?text=" + encodeURIComponent(message);
+        window.open(url, '_blank');
+    }
+
+    // --- NEW: ORGANIC MODE LOGIC (DARK GREEN THEME) ---
+    function setMode(mode) {
+        var slider = document.getElementById('mode-slider');
+        var btnChem = document.getElementById('btn-chem');
+        var btnOrg = document.getElementById('btn-org');
+        var orgPanel = document.getElementById('organic-panel');
+        var orgBadge = document.getElementById('organic-badge');
+        
+        if (mode === 'organic') {
+            // Slide Right -> DARK GREEN
+            slider.style.left = '145px';
+            slider.style.background = '#006400'; // Dark Green
+            slider.style.boxShadow = '0 0 15px rgba(0, 100, 0, 0.8)';
+            
+            btnChem.style.color = '#666';
+            btnOrg.style.color = 'white';
+            
+            // Show Organic UI
+            orgPanel.style.display = 'block';
+            orgBadge.style.display = 'block';
+            
+            // Run the calculation
+            updateOrganicValues();
+
+        } else {
+            // Slide Left -> DARK GREY (Chemical)
+            slider.style.left = '5px';
+            slider.style.background = '#333'; // Dark Grey
+            slider.style.boxShadow = 'none';
+
+            btnChem.style.color = 'white';
+            btnOrg.style.color = '#666';
+            
+            // Hide Organic UI
+            orgPanel.style.display = 'none';
+            orgBadge.style.display = 'none';
+        }
+    }
+
+    function updateOrganicValues() {
+        // Check if organic panel is visible
+        if(document.getElementById('organic-panel').style.display === 'none') return;
+
+        // 1. Get the Current Chemical Quantities (Urea, DAP, MOP) from UI
+        var ureaQty = parseFloat(document.getElementById('valN').innerText) || 0;
+        var dapQty  = parseFloat(document.getElementById('valP').innerText) || 0;
+        var mopQty  = parseFloat(document.getElementById('valK').innerText) || 0;
+        
+        // 2. Apply Scientific Conversion Factors (20x, 3x, 10x)
+        
+        // Vermicompost (Replaces Urea): Factor 20x
+        var vermiQty = Math.round(ureaQty * 20); 
+
+        // Bone Meal (Replaces DAP): Factor 3x
+        var boneQty = Math.round(dapQty * 3);
+
+        // Wood Ash (Replaces MOP): Factor 10x
+        var ashQty = Math.round(mopQty * 10);
+
+        // 3. Update the Screen
+        document.getElementById('org-vermi').innerText = vermiQty.toLocaleString() + " kg";
+        document.getElementById('org-bone').innerText = boneQty.toLocaleString() + " kg";
+        document.getElementById('org-ash').innerText = ashQty.toLocaleString() + " kg";
+    }
+
+    window.onload = function() {
+        calculateCost();
+        window.speechSynthesis.getVoices();
+    };
+</script>
+
+</body>
+</html>
